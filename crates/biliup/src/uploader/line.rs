@@ -264,7 +264,7 @@ pub fn qn() -> Line {
 pub fn qnhk() -> Line {
     Line {
         os: Uploader::Upos,
-        query: "upcdn=qn&probe_version=20211012".into(),
+        query: "upcdn=qnhk&probe_version=20211012".into(),
         probe_url: "//upos-cs-upcdnqnhk.bilivideo.com/OK".into(),
         cost: 0,
     }
