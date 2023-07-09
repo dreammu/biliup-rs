@@ -153,7 +153,7 @@ enum Bucket {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Line {
-    upcdn: &str,
+    upcdn: String,
     os: Uploader,
     probe_url: String,
     query: String,
@@ -201,9 +201,9 @@ impl Line {
         if let Uploader::Upos = self.os {
             // Check self.upcdn value and modify endpoint accordingly
             match self.upcdn {
-                "qnhk" => json_response["endpoint"] = "//upos-cs-upcdnqnhk.bilivideo.com",
-                "ws" => json_response["endpoint"] = "//upos-sz-upcdnws.bilivideo.com",
-                "qn" => json_response["endpoint"] = "//upos-cs-upcdnqn.bilivideo.com",
+                "qnhk".into() => json_response["endpoint"] = "//upos-cs-upcdnqnhk.bilivideo.com".to_string(),
+                "ws".into() => json_response["endpoint"] = "//upos-sz-upcdnws.bilivideo.com".to_string(),
+                "qn".into() => json_response["endpoint"] = "//upos-cs-upcdnqn.bilivideo.com".to_string(),
                 _ => (),  // No modification for other cases
             }
         }
@@ -243,7 +243,7 @@ impl Default for Line {
 
 pub fn kodo() -> Line {
     Line {
-        upcdn: "kodo",
+        upcdn: "kodo".into(),
         os: Uploader::Kodo,
         query: "bucket=bvcupcdnkodobm&probe_version=20211012".into(),
         probe_url: "//up-na0.qbox.me/crossdomain.xml".into(),
@@ -253,7 +253,7 @@ pub fn kodo() -> Line {
 
 pub fn bda2() -> Line {
     Line {
-        upcdn: "bda2",
+        upcdn: "bda2".into(),
         os: Uploader::Upos,
         query: "upcdn=bda2&probe_version=20211012".into(),
         probe_url: "//upos-sz-upcdnbda2.bilivideo.com/OK".into(),
@@ -263,7 +263,7 @@ pub fn bda2() -> Line {
 
 pub fn ws() -> Line {
     Line {
-        upcdn: "ws",
+        upcdn: "ws".into(),
         os: Uploader::Upos,
         query: "upcdn=ws&probe_version=20211012".into(),
         probe_url: "//upos-sz-upcdnws.bilivideo.com/OK".into(),
@@ -273,7 +273,7 @@ pub fn ws() -> Line {
 
 pub fn qn() -> Line {
     Line {
-        upcdn: "qn",
+        upcdn: "qn".into(),
         os: Uploader::Upos,
         query: "upcdn=qn&probe_version=20211012".into(),
         probe_url: "//upos-sz-upcdnqn.bilivideo.com/OK".into(),
@@ -283,7 +283,7 @@ pub fn qn() -> Line {
 
 pub fn qnhk() -> Line {
     Line {
-        upcdn: "qnhk",
+        upcdn: "qnhk".into(),
         os: Uploader::Upos,
         query: "upcdn=qnhk&probe_version=20211012".into(),
         probe_url: "//upos-cs-upcdnqnhk.bilivideo.com/OK".into(),
@@ -294,7 +294,7 @@ pub fn qnhk() -> Line {
 
 pub fn cos() -> Line {
     Line {
-        upcdn: "cos",
+        upcdn: "cos".into(),
         os: Uploader::Cos,
         query: "&probe_version=20211012&r=cos&profile=ugcupos%2Fbupfetch&ssl=0&version=2.10.4.0&build=2100400&webVersion=2.0.0".into(),
         probe_url: "".into(),
@@ -304,7 +304,7 @@ pub fn cos() -> Line {
 
 pub fn cos_internal() -> Line {
     Line {
-        upcdn: "cos-internal",
+        upcdn: "cos-internal".into(),
         os: Uploader::Cos,
         query: "".into(),
         probe_url: "internal".into(),
