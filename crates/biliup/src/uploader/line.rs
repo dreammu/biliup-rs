@@ -200,10 +200,10 @@ impl Line {
         
         if let Uploader::Upos = self.os {
             // Check self.upcdn value and modify endpoint accordingly
-            match self.upcdn {
-                "qnhk".into() => json_response["endpoint"] = "//upos-cs-upcdnqnhk.bilivideo.com".to_string(),
-                "ws".into() => json_response["endpoint"] = "//upos-sz-upcdnws.bilivideo.com".to_string(),
-                "qn".into() => json_response["endpoint"] = "//upos-cs-upcdnqn.bilivideo.com".to_string(),
+            match self.upcdn.as_str()  {
+                "qnhk" => json_response["endpoint"] = "//upos-cs-upcdnqnhk.bilivideo.com".to_string(),
+                "ws" => json_response["endpoint"] = "//upos-sz-upcdnws.bilivideo.com".to_string(),
+                "qn" => json_response["endpoint"] = "//upos-cs-upcdnqn.bilivideo.com".to_string(),
                 _ => (),  // No modification for other cases
             }
         }
