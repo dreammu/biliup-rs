@@ -202,7 +202,7 @@ impl Line {
         if let Uploader::Upos = self.os {
             // Check self.upcdn value and modify endpoint accordingly
             match self.upcdn.as_str()  {
-                "qnhk" => json_respon["endpoint"] = serde_json::to_value("//upos-cs-upcdnqnhk.bilivideo.com").unwrap(),
+                "qnhk" => json_response["endpoint"] = serde_json::to_value("//upos-cs-upcdnqnhk.bilivideo.com").unwrap(),
                 "ws" => json_response["endpoint"] = serde_json::to_value("//upos-sz-upcdnws.bilivideo.com").unwrap(),
                 "qn" => json_response["endpoint"] = serde_json::to_value("//upos-cs-upcdnqn.bilivideo.com").unwrap(),
                 _ => (),  // No modification for other cases
