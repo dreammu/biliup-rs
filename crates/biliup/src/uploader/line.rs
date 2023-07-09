@@ -194,20 +194,34 @@ impl Line {
                 response.text().await?
             )));
         }
+        
+        let mut json_response = response.json().await?;  // Parse JSON response
+        
+        if let Uploader::Upos = self.os {
+            // Check self.upcdn value and modify endpoint accordingly
+            match self.upcdn {
+                "qnhk" => json_response["endpoint"] = "//upos-cs-upcdnqnhk.bilivideo.com",
+                "ws" => json_response["endpoint"] = "//upos-sz-upcdnws.bilivideo.com",
+                "qn" => json_response["endpoint"] = "//upos-cs-upcdnqn.bilivideo.com",
+                _ => (),  // No modification for other cases
+            }
+        }
+
+        
         match self.os {
             Uploader::Upos => Ok(Parcel {
-                line: Bucket::Upos(response.json().await?),
+                line: Bucket::Upos(json_response),
                 video_file,
             }),
             Uploader::Kodo => Ok(Parcel {
-                line: Bucket::Kodo(response.json().await?),
+                line: Bucket::Kodo(json_response),
                 video_file,
             }),
             Uploader::Bos | Uploader::Gcs => {
                 panic!("unsupported")
             }
             Uploader::Cos => Ok(Parcel {
-                line: Bucket::Cos(response.json().await?, self.probe_url == "internal"),
+                line: Bucket::Cos(json_response, self.probe_url == "internal"),
                 video_file,
             }),
         }
