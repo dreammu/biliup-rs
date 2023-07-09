@@ -57,7 +57,7 @@ OPTIONS:
         --dynamic <DYNAMIC>            空间动态 [default: ]
     -h, --help                         Print help information
         --interactive <INTERACTIVE>    [default: 0]
-    -l, --line <LINE>                  选择上传线路 [possible values: bda2, ws, qn, kodo, cos, cos-
+    -l, --line <LINE>                  选择上传线路 [possible values: bda2, ws, qn, qnhk, kodo, cos, cos-
                                        internal]
         --limit <LIMIT>                单视频文件最大并发数 [default: 3]
         --mission-id <MISSION_ID>
@@ -138,16 +138,17 @@ bilibili 投稿模式分主要为 fetch 和直传两种，线路概览：
 
 测速：<http://member.bilibili.com/preupload?r=ping>
 
-- bup（直传b站投稿系统，适合**大陆地区**）
+- bup（直传b站投稿系统，适合**大陆地区，网宿适合全球，七牛、七牛香港支持ipv6**）
   - upos
     - [x] bda2（百度）
     - [x] qn（七牛）
+    - [x] qnhk (七牛香港) 
     - [x] ws（网宿）
 - bupfetch （传至合作方后由b站投稿系统拉取，适合**港澳台和海外地区**）
   - [x] kodo（七牛）
   - [ ] bos（百度）
   - [ ] gcs（谷歌）
-  - [x] cos（腾讯）
+  - [] cos（腾讯）
 
 B 站在上传前会通过 probe 来返回几条线路，并发包测试从中选择响应时间较短的，但对与国外的机器实际上不太准确，所以建议还是在实际测试后手动选择一条线路，实际测试大部分国外机器在 kodo 线路 3 并发的情况下能达到 60-90 MiB/s 的速度，理论上增加并发数能跑满带宽。
 
