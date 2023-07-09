@@ -117,6 +117,7 @@ pub enum UploadLine {
     Bda2,
     Ws,
     Qn,
+    QnHK,
     Kodo,
     Cos,
     CosInternal,
