@@ -232,7 +232,7 @@ impl Line {
 impl Default for Line {
     fn default() -> Self {
         Line {
-            upcdn: "bda2",
+            upcdn: "bda2".to_string(),
             os: Uploader::Upos,
             probe_url: "//upos-sz-upcdnbda2.bilivideo.com/OK".to_string(),
             query: "upcdn=bda2&probe_version=20211012".to_string(),
