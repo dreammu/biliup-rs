@@ -182,6 +182,7 @@ pub async fn upload(
         Some(UploadLine::Bda2) => line::bda2(),
         Some(UploadLine::Ws) => line::ws(),
         Some(UploadLine::Qn) => line::qn(),
+        Some(UploadLine::QnHK) => line::qnhk(),
         Some(UploadLine::Cos) => line::cos(),
         Some(UploadLine::CosInternal) => line::cos_internal(),
         None => Probe::probe(&client.client).await.unwrap_or_default(),
