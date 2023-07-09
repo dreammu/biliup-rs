@@ -161,15 +161,6 @@ pub struct Line {
     cost: u128,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct BucketJson {
-    pub chunk_size: usize,
-    auth: String,
-    endpoint: String,
-    biz_id: usize,
-    upos_uri: String,
-}
-
 
 impl Line {
     pub async fn pre_upload(&self, bili: &BiliBili, video_file: VideoFile) -> Result<Parcel> {
@@ -206,7 +197,7 @@ impl Line {
             )));
         }
         
-        let mut json_response: BucketJson = response.json().await?;  // Parse JSON response
+        let mut json_response: serde_json::Value = response.json().await?;  // Parse JSON response
         
         if let Uploader::Upos = self.os {
             // Check self.upcdn value and modify endpoint accordingly
@@ -221,18 +212,18 @@ impl Line {
         
         match self.os {
             Uploader::Upos => Ok(Parcel {
-                line: Bucket::Upos(json_response),
+                line: Bucket::Upos(serde_json::from_value::<Bucket>(json_response)?),
                 video_file,
             }),
             Uploader::Kodo => Ok(Parcel {
-                line: Bucket::Kodo(json_response),
+                line: Bucket::Kodo(serde_json::from_value::<Bucket>(json_response)?),
                 video_file,
             }),
             Uploader::Bos | Uploader::Gcs => {
                 panic!("unsupported")
             }
             Uploader::Cos => Ok(Parcel {
-                line: Bucket::Cos(json_response, self.probe_url == "internal"),
+                line: Bucket::Cos(serde_json::from_value::<Bucket>(json_response)?, self.probe_url == "internal"),
                 video_file,
             }),
         }
