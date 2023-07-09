@@ -196,14 +196,14 @@ impl Line {
             )));
         }
         
-        let mut json_response = response.json().await?;  // Parse JSON response
+        let mut json_response: Value = response.json().await?;  // Parse JSON response
         
         if let Uploader::Upos = self.os {
             // Check self.upcdn value and modify endpoint accordingly
             match self.upcdn.as_str()  {
-                "qnhk" => json_response["endpoint"] = "//upos-cs-upcdnqnhk.bilivideo.com".to_string(),
-                "ws" => json_response["endpoint"] = "//upos-sz-upcdnws.bilivideo.com".to_string(),
-                "qn" => json_response["endpoint"] = "//upos-cs-upcdnqn.bilivideo.com".to_string(),
+                "qnhk" => json_response["endpoint"] = Value::String("//upos-cs-upcdnqnhk.bilivideo.com".to_string()),
+                "ws" => json_response["endpoint"] = Value::String("//upos-sz-upcdnws.bilivideo.com".to_string()),
+                "qn" => json_response["endpoint"] = Value::String("//upos-cs-upcdnqn.bilivideo.com".to_string()),
                 _ => (),  // No modification for other cases
             }
         }
