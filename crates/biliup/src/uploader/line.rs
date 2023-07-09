@@ -202,9 +202,9 @@ impl Line {
         if let Uploader::Upos = self.os {
             // Check self.upcdn value and modify endpoint accordingly
             match self.upcdn.as_str()  {
-                "qnhk" => json_response.endpoint = "//upos-cs-upcdnqnhk.bilivideo.com".to_string(),
-                "ws" => json_response.endpoint = "//upos-sz-upcdnws.bilivideo.com".to_string(),
-                "qn" => json_response.endpoint = "//upos-cs-upcdnqn.bilivideo.com".to_string(),
+                "qnhk" => json_respon["endpoint"] = "//upos-cs-upcdnqnhk.bilivideo.com".to_string(),
+                "ws" => json_response["endpoint"] = "//upos-sz-upcdnws.bilivideo.com".to_string(),
+                "qn" => json_response["endpoint"] = "//upos-cs-upcdnqn.bilivideo.com".to_string(),
                 _ => (),  // No modification for other cases
             }
         }
@@ -212,18 +212,18 @@ impl Line {
         
         match self.os {
             Uploader::Upos => Ok(Parcel {
-                line: Bucket::Upos(serde_json::from_value::<Bucket>(json_response)?),
+                line: Bucket::Upos(serde_json::from_value::<upos::Bucket>(json_response)?),
                 video_file,
             }),
             Uploader::Kodo => Ok(Parcel {
-                line: Bucket::Kodo(serde_json::from_value::<Bucket>(json_response)?),
+                line: Bucket::Kodo(serde_json::from_value::<kodo:Bucket>(json_response)?),
                 video_file,
             }),
             Uploader::Bos | Uploader::Gcs => {
                 panic!("unsupported")
             }
             Uploader::Cos => Ok(Parcel {
-                line: Bucket::Cos(serde_json::from_value::<Bucket>(json_response)?, self.probe_url == "internal"),
+                line: Bucket::Cos(serde_json::from_value::<cos::Bucket>(json_response)?, self.probe_url == "internal"),
                 video_file,
             }),
         }
