@@ -217,6 +217,7 @@ impl Line {
 impl Default for Line {
     fn default() -> Self {
         Line {
+            upcdn: "bda2",
             os: Uploader::Upos,
             probe_url: "//upos-sz-upcdnbda2.bilivideo.com/OK".to_string(),
             query: "upcdn=bda2&probe_version=20211012".to_string(),
@@ -227,6 +228,7 @@ impl Default for Line {
 
 pub fn kodo() -> Line {
     Line {
+        upcdn: "kodo",
         os: Uploader::Kodo,
         query: "bucket=bvcupcdnkodobm&probe_version=20211012".into(),
         probe_url: "//up-na0.qbox.me/crossdomain.xml".into(),
@@ -236,6 +238,7 @@ pub fn kodo() -> Line {
 
 pub fn bda2() -> Line {
     Line {
+        upcdn: "bda2",
         os: Uploader::Upos,
         query: "upcdn=bda2&probe_version=20211012".into(),
         probe_url: "//upos-sz-upcdnbda2.bilivideo.com/OK".into(),
@@ -245,6 +248,7 @@ pub fn bda2() -> Line {
 
 pub fn ws() -> Line {
     Line {
+        upcdn: "ws",
         os: Uploader::Upos,
         query: "upcdn=ws&probe_version=20211012".into(),
         probe_url: "//upos-sz-upcdnws.bilivideo.com/OK".into(),
@@ -254,6 +258,7 @@ pub fn ws() -> Line {
 
 pub fn qn() -> Line {
     Line {
+        upcdn: "qn",
         os: Uploader::Upos,
         query: "upcdn=qn&probe_version=20211012".into(),
         probe_url: "//upos-sz-upcdnqn.bilivideo.com/OK".into(),
@@ -263,6 +268,7 @@ pub fn qn() -> Line {
 
 pub fn qnhk() -> Line {
     Line {
+        upcdn: "qnhk",
         os: Uploader::Upos,
         query: "upcdn=qnhk&probe_version=20211012".into(),
         probe_url: "//upos-cs-upcdnqnhk.bilivideo.com/OK".into(),
@@ -273,6 +279,7 @@ pub fn qnhk() -> Line {
 
 pub fn cos() -> Line {
     Line {
+        upcdn: "cos",
         os: Uploader::Cos,
         query: "&probe_version=20211012&r=cos&profile=ugcupos%2Fbupfetch&ssl=0&version=2.10.4.0&build=2100400&webVersion=2.0.0".into(),
         probe_url: "".into(),
@@ -282,6 +289,7 @@ pub fn cos() -> Line {
 
 pub fn cos_internal() -> Line {
     Line {
+        upcdn: "cos-internal",
         os: Uploader::Cos,
         query: "".into(),
         probe_url: "internal".into(),
