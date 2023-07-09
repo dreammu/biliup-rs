@@ -153,6 +153,7 @@ enum Bucket {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Line {
+    upcdn: String,
     os: Uploader,
     probe_url: String,
     query: String,
