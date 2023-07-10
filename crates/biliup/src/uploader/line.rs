@@ -205,6 +205,7 @@ impl Line {
                 "qnhk" => json_response["endpoint"] = serde_json::to_value("//upos-cs-upcdnqnhk.bilivideo.com").unwrap(),
                 "ws" => json_response["endpoint"] = serde_json::to_value("//upos-cs-upcdnws.bilivideo.com").unwrap(),
                 "qn" => json_response["endpoint"] = serde_json::to_value("//upos-cs-upcdnqn.bilivideo.com").unwrap(),
+                "bldsa" => json_response["endpoint"] = serde_json::to_value("//upos-cs-upcdnbldsa.bilivideo.com").unwrap(),
                 _ => (),  // No modification for other cases
             }
         }
@@ -292,6 +293,15 @@ pub fn qnhk() -> Line {
     }
 }
 
+pub fn bldsa() -> Line {
+    Line {
+        upcdn: "bldsa".into(),
+        os: Uploader::Upos,
+        query: "upcdn=bldsa&probe_version=20211012".into(),
+        probe_url: "//upos-cs-upcdnbldsa.bilivideo.com/OK".into(),
+        cost: 0,
+    }
+}
 
 pub fn cos() -> Line {
     Line {
