@@ -6,6 +6,7 @@ use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use std::sync::Arc;
+use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct StatelessClient {
@@ -20,7 +21,7 @@ impl StatelessClient {
         let client = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:60.1) Gecko/20100101 Firefox/60.1")
             .default_headers(headers)
-            .connect_timeout(std::time::Duration::from_secs(30))
+            .connect_timeout(Duration::from_secs(30))
             .timeout(Duration::new(60, 0))
             // .connect_timeout()
             .build()
@@ -42,8 +43,7 @@ impl StatelessClient {
             self.client
                 .get(url)
                 .headers(self.headers.clone())
-                .connect_timeout(std::time::Duration::from_secs(30))
-                .timeout(Duration::new(60, 0))
+                // .timeout(Duration::new(60, 0))
                 // .header(ACCEPT, "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                 // .header(ACCEPT_ENCODING, "gzip, deflate")
                 // .header(ACCEPT_LANGUAGE, "zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3")
@@ -76,7 +76,7 @@ impl StatefulClient {
                     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108",
                 )
                 .default_headers(headers)
-                .connect_timeout(std::time::Duration::from_secs(30))
+                .connect_timeout(Duration::from_secs(30))
                 .timeout(Duration::new(60, 0))
                 .build()
                 .unwrap(),
