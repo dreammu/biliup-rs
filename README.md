@@ -39,37 +39,37 @@ B 站命令行投稿工具，支持**短信登录**、**账号密码登录**、*
 
 ```shell
 $ biliup help upload
+上传视频
 
-USAGE:
-    biliup.exe upload [OPTIONS] [VIDEO_PATH]...
+Usage: biliup upload [OPTIONS] [VIDEO_PATH]...
 
-ARGS:
-    <VIDEO_PATH>...    需要上传的视频路径,若指定配置文件投稿不需要此参数
+Arguments:
+  [VIDEO_PATH]...  需要上传的视频路径,若指定配置文件投稿不需要此参数
 
-OPTIONS:
-    -c, --config <FILE>                Sets a custom config file
-        --copyright <COPYRIGHT>        是否转载, 1-自制 2-转载 [default: 1]
-        --cover <COVER>                视频封面 [default: ]
-        --desc <DESC>                  视频简介 [default: ]
-        --dolby <DOLBY>                是否开启杜比音效, 0-关闭 1-开启 [default: 0]
-        --hires <LOSSLESS_MUSIC>       是否开启 Hi-Res, 0-关闭 1-开启 [default: 0]
-        --dtime <DTIME>                延时发布时间，距离提交大于4小时，格式为10位时间戳
-        --dynamic <DYNAMIC>            空间动态 [default: ]
-    -h, --help                         Print help information
-        --interactive <INTERACTIVE>    [default: 0]
-    -l, --line <LINE>                  选择上传线路 [possible values: bda2, ws, qn, qnhk, kodo, cos, cos-
-                                       internal, bldsa]
-        --limit <LIMIT>                单视频文件最大并发数 [default: 3]
-        --mission-id <MISSION_ID>
-        --no-reprint <NO_REPRINT>      自制声明, 0-允许转载，1-禁止转载 [default: 0]
-        --open-elec <OPEN_ELEC>        是否开启充电面板, 0-关闭 1-开启 [default: 0]
-        --source <SOURCE>              转载来源 [default: ]
-        --tag <TAG>                    视频标签，逗号分隔多个tag [default: ]
-        --tid <TID>                    投稿分区 [default: 171]
-        --title <TITLE>                视频标题 [default: ]
-        --up-close-danmu
-        --up-close-reply
-        --up-selection-reply
+Options:
+      --submit <SUBMIT>            提交接口 [default: client] [possible values: client, app, web]
+  -c, --config <FILE>              Sets a custom config file
+  -l, --line <LINE>                选择上传线路 [possible values: bda2, ws, qn, bldsa, tx, txa, bda]
+      --limit <LIMIT>              单视频文件最大并发数 [default: 3]
+      --copyright <COPYRIGHT>      是否转载, 1-自制 2-转载 [default: 1]
+      --source <SOURCE>            转载来源 [default: ]
+      --tid <TID>                  投稿分区 [default: 171]
+      --cover <COVER>              视频封面 [default: ]
+      --title <TITLE>              视频标题 [default: ]
+      --desc <DESC>                视频简介 [default: ]
+      --dynamic <DYNAMIC>          空间动态 [default: ]
+      --tag <TAG>                  视频标签，逗号分隔多个tag [default: ]
+      --dtime <DTIME>              延时发布时间，距离提交大于4小时，格式为10位时间戳
+      --interactive <INTERACTIVE>  [default: 0]
+      --mission-id <MISSION_ID>
+      --dolby <DOLBY>              是否开启杜比音效, 0-关闭 1-开启 [default: 0]
+      --hires <LOSSLESS_MUSIC>     是否开启 Hi-Res, 0-关闭 1-开启 [default: 0]
+      --no-reprint <NO_REPRINT>    0-允许转载，1-禁止转载 [default: 0]
+      --open-elec <OPEN_ELEC>      是否开启充电, 0-关闭 1-开启 [default: 0]
+      --up-selection-reply         是否开启精选评论，仅提交接口为app时可用
+      --up-close-reply             是否关闭评论，仅提交接口为app时可用
+      --up-close-danmu             是否关闭弹幕，仅提交接口为app时可用
+  -h, --help                       Print help
 ```
 
 - 下载视频：`./biliup download https://xxxx`
@@ -140,17 +140,23 @@ bilibili 投稿模式分主要为 fetch 和直传两种，线路概览：
 
 - bup（直传b站投稿系统，适合**大陆地区，网宿适合全球，七牛、七牛香港支持ipv6**）
   - upos
-    - [x] bda2（百度）
+    - [x] bda2（百度云）
     - [x] qn（七牛）
     - [x] qnhk (七牛香港) 
     - [x] ws（网宿）
-- bupfetch （传至合作方后由b站投稿系统拉取，适合**港澳台和海外地区**）
-  - [x] kodo（七牛）
-  - [ ] bos（百度）
-  - [ ] gcs（谷歌）
-  - [] cos（腾讯）
+    - [x] bldsa (百度云)
+    - [x] tx (腾讯云EO)
+    - [x] txa (腾讯云EO海外)
+    - [x] bda (百度云海外)
+- bupfetch （传至合作方后由b站投稿系统拉取，**已经长时间不可用**）
+  - [x] ~~kodo（七牛）~~
+  - [ ] ~~bos（百度）~~
+  - [ ] ~~gcs（谷歌）~~
+  - [x] ~~cos（腾讯）~~
 
-B 站在上传前会通过 probe 来返回几条线路，并发包测试从中选择响应时间较短的，但对与国外的机器实际上不太准确，所以建议还是在实际测试后手动选择一条线路，实际测试大部分国外机器在 kodo 线路 3 并发的情况下能达到 60-90 MiB/s 的速度，理论上增加并发数能跑满带宽。
+ > 未选择上传线路时，在上传前会通过 probe 来返回几条线路，并发包测试从中选择响应时间较短的，正常情况下都会选择到良好的上传线路。
+ > 如果自动选择的线路上传速度不佳，可以增大并发数或指定上述已支持选择的线路。
+ > 理论上，增加并发数能加快上传速度，但部分线路存在并发数限制，请结合实际自行测试。
 
 ## TIPS
 
@@ -164,6 +170,6 @@ B 站在上传前会通过 probe 来返回几条线路，并发包测试从中�
 export DATABASE_URL="sqlite:data.db"
 cargo sqlx db create
 cargo sqlx migrate run --source .\crates\biliup\migrations\
-cargo sqlx prepare  --merged 
+cargo sqlx prepare  --merged
 cargo run -- server -b localhost
 ```

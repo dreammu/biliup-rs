@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::ffi::OsStr;
 use std::path::Path;
+use std::time::Duration;
 
 use crate::client::StatelessClient;
 use crate::retry;
@@ -54,6 +55,7 @@ impl Upos {
             .client_with_middleware
             .post(format!("{url}?uploads&output=json"))
             .header("X-Upos-Auth", header::HeaderValue::from_str(&bucket.auth)?)
+            .timeout(Duration::from_secs(60))
             .send()
             .await?
             .json()
@@ -96,7 +98,7 @@ impl Upos {
         // let parts_cell = &RefCell::new(parts);
         let chunk_size = self.bucket.chunk_size;
         let chunks_num = (total_size as f64 / chunk_size as f64).ceil() as usize; // 获取分块数量
-                                                                                  // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
+        // let file = tokio::io::BufReader::with_capacity(chunk_size, file);
         let client = &self.client.client;
         let url = &self.url;
         let upload_id = &*self.upload_id;
@@ -125,6 +127,7 @@ impl Upos {
                             header::HeaderValue::from_str(&self.bucket.auth)?,
                         )
                         .query(&params)
+                        .timeout(Duration::from_secs(240))
                         .header(CONTENT_LENGTH, len)
                         .body(chunk.clone())
                         .send()
@@ -164,6 +167,7 @@ impl Upos {
             )
             .query(&value)
             .json(&json!({ "parts": parts }))
+            .timeout(Duration::from_secs(60))
             .send()
             .await?
             .json()

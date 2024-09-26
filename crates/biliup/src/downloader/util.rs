@@ -3,7 +3,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use std::time::Duration;
-use tracing::error;
+use tracing::{error, info};
+
+use super::extractor::CallbackFn;
 
 #[derive(Debug)]
 pub enum Segment {
@@ -99,16 +101,12 @@ pub struct LifecycleFile {
     pub fmt_file_name: String,
     pub file_name: String,
     pub path: PathBuf,
-    pub hook: Box<dyn Fn(&str) + Send>,
+    pub hook: CallbackFn,
     pub extension: &'static str,
 }
 
 impl LifecycleFile {
-    pub fn new(
-        fmt_file_name: &str,
-        extension: &'static str,
-        hook: Option<Box<dyn Fn(&str) + Send>>,
-    ) -> Self {
+    pub fn new(fmt_file_name: &str, extension: &'static str, hook: Option<CallbackFn>) -> Self {
         let hook: Box<dyn Fn(&str) + Send> = if let Some(hook) = hook {
             hook
         } else {
@@ -135,7 +133,7 @@ impl LifecycleFile {
         }
         // path.set_extension(&self.extension);
         self.path.set_extension(format!("{}.part", self.extension));
-        println!("Save to {}", self.path.display());
+        info!("Save to {}", self.path.display());
         Ok(self.path.as_path())
     }
 

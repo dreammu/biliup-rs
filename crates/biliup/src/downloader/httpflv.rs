@@ -9,13 +9,14 @@ use nom::{Err, IResult};
 use reqwest::Response;
 
 use std::time::Duration;
+use tokio::time::timeout;
 use tracing::{info, warn};
 
-pub async fn download(connection: Connection, file_name: &str, segment: Segmentable) {
-    let file: LifecycleFile = LifecycleFile::new(file_name, "flv", None);
+pub async fn download(connection: Connection, file: LifecycleFile, segment: Segmentable) {
+    let file_name = file.file_name.clone();
     match parse_flv(connection, file, segment).await {
         Ok(_) => {
-            info!("Done... {file_name}");
+            info!("Done... {}", file_name);
         }
         Err(e) => {
             warn!("{e}")
@@ -137,14 +138,16 @@ pub(crate) async fn parse_flv(
         };
         match &flv_tag {
             FlvTag {
-                data:
-                    TagDataHeader::Video {
-                        frame_type: FrameType::Key,
-                        ..
-                    },
+                data: TagDataHeader::Video {
+                    frame_type: FrameType::Key,
+                    ..
+                },
                 ..
             } => {
                 let timestamp = flv_tag.header.timestamp as u64;
+                if prev_timestamp == 0 && timestamp != 0{
+                    segment.set_start_time(Duration::from_millis(timestamp));
+                }
                 segment.set_time_position(Duration::from_millis(timestamp));
                 for (tag_header, flv_tag_data, previous_tag_size_bytes) in &flv_tags_cache {
                     if tag_header.timestamp < prev_timestamp {
@@ -234,18 +237,21 @@ impl Connection {
         }
     }
 
-    pub async fn read_frame(&mut self, chunk_size: usize) -> reqwest::Result<Bytes> {
+    pub async fn read_frame(
+        &mut self,
+        chunk_size: usize,
+    ) -> crate::downloader::error::Result<Bytes> {
         // let mut buf = [0u8; 8 * 1024];
         loop {
             if chunk_size <= self.buffer.len() {
                 let bytes = Bytes::copy_from_slice(&self.buffer[..chunk_size]);
-                self.buffer.advance(chunk_size as usize);
+                self.buffer.advance(chunk_size);
                 return Ok(bytes);
             }
             // BytesMut::with_capacity(0).deref_mut()
             // tokio::fs::File::open("").read()
             // self.resp.chunk()
-            if let Some(chunk) = self.resp.chunk().await? {
+            if let Ok(Some(chunk)) = timeout(Duration::from_secs(30), self.resp.chunk()).await? {
                 // let n = chunk.len();
                 // println!("Chunk: {:?}", chunk);
                 self.buffer.put(chunk);
@@ -269,7 +275,6 @@ impl Connection {
 
 #[cfg(test)]
 mod tests {
-
     use anyhow::Result;
     use bytes::{Buf, BufMut, BytesMut};
 

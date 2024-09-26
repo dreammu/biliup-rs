@@ -80,11 +80,11 @@ pub struct Studio {
     pub interactive: u8,
 
     #[clap(long)]
+    #[serde(default)]
     pub mission_id: Option<u32>,
 
     // #[clap(long, default_value = "0")]
     // pub act_reserve_create: u8,
-
     /// 是否开启杜比音效, 0-关闭 1-开启
     #[clap(long, default_value = "0")]
     #[serde(default)]
@@ -109,17 +109,53 @@ pub struct Studio {
     #[clap(skip)]
     pub aid: Option<u64>,
 
+    /// 是否开启精选评论，仅提交接口为app时可用
     #[clap(long)]
     #[serde(default)]
     pub up_selection_reply: bool,
 
+    /// 是否关闭评论，仅提交接口为app时可用
     #[clap(long)]
     #[serde(default)]
     pub up_close_reply: bool,
 
+    /// 是否关闭弹幕，仅提交接口为app时可用
     #[clap(long)]
     #[serde(default)]
     pub up_close_danmu: bool,
+
+    // #[clap(long)]
+    // #[serde(default)]
+    // pub submit_by_app: bool,
+}
+
+#[derive(Default, Debug, Serialize, Deserialize)]
+pub struct Archive {
+    pub aid: u64,
+    pub bvid: String,
+    pub title: String,
+    pub cover: String,
+    pub reject_reason: String,
+    pub reject_reason_url: String,
+    pub duration: u64,
+    pub desc: String,
+    pub state: i16,
+    pub state_desc: String,
+    pub dtime: u64,
+    pub ptime: u64,
+    pub ctime: u64,
+}
+
+impl Archive {
+    pub fn to_string_pretty(&self) -> String {
+        let status_string = match self.state {
+            0 => format!("\x1b[1;92m{}\x1b[0m", self.state_desc),
+            -2 => format!("\x1b[1;91m{}\x1b[0m", self.state_desc),
+            -30 => format!("\x1b[1;93m{}\x1b[0m", self.state_desc),
+            _ => self.desc.to_string(),
+        };
+        format!("{}\t{}\t{}", self.bvid, self.title, status_string)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -164,6 +200,10 @@ impl FromStr for Vid {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         let s = s.trim();
+        if s.len() < 3 {
+            return s.parse::<u64>()
+                    .map(Vid::Aid);
+        }
         match &s[..2] {
             "BV" => Ok(Vid::Bvid(s.to_string())),
             "av" => Ok(Vid::Aid(s[2..].parse()?)),
@@ -188,14 +228,56 @@ pub struct BiliBili {
 
 impl BiliBili {
     pub async fn submit(&self, studio: &Studio) -> Result<ResponseData> {
+            let ret: ResponseData = reqwest::Client::builder()
+                .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+                .timeout(Duration::new(60, 0))
+                .build()?
+                .post(format!(
+                    "http://member.bilibili.com/x/vu/client/add?access_key={}",
+                    self.login_info.token_info.access_token
+                ))
+                .json(studio)
+                .send()
+                .await?
+                .json()
+                .await?;
+            info!("{:?}", ret);
+            if ret.code == 0 {
+                info!("投稿成功");
+                Ok(ret)
+            } else {
+                Err(Kind::Custom(format!("{:?}", ret)))
+            }
+        }
+
+    pub async fn submit_by_app(&self, studio: &Studio) -> Result<ResponseData> {
+        let payload = {
+            let mut payload = json!({
+                "access_key": self.login_info.token_info.access_token,
+                "appkey": crate::credential::AppKeyStore::BiliTV.app_key(),
+                "build": 7800300,
+                "c_locale": "zh-Hans_CN",
+                "channel": "bili",
+                "disable_rcmd": 0,
+                "mobi_app": "android",
+                "platform": "android",
+                "s_locale": "zh-Hans_CN",
+                "statistics": "\"appId\":1,\"platform\":3,\"version\":\"7.80.0\",\"abtest\":\"\"",
+                "ts": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs(),
+            });
+
+            let urlencoded = serde_urlencoded::to_string(&payload)?;
+            let sign = crate::credential::Credential::sign(&urlencoded, crate::credential::AppKeyStore::BiliTV.appsec());
+            payload["sign"] = Value::from(sign);
+            payload
+        };
+
         let ret: ResponseData = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+            .user_agent("Mozilla/5.0 BiliDroid/7.80.0 (bbcallen@gmail.com) os/android model/MI 6 mobi_app/android build/7800300 channel/bili innerVer/7800310 osVer/13 network/2")
             .timeout(Duration::new(60, 0))
             .build()?
-            .post(format!(
-                "http://member.bilibili.com/x/vu/client/add?access_key={}",
-                self.login_info.token_info.access_token
-            ))
+            .post("https://member.bilibili.com/x/vu/app/add")
+            .query(&payload)
             .json(studio)
             .send()
             .await?
@@ -203,7 +285,7 @@ impl BiliBili {
             .await?;
         info!("{:?}", ret);
         if ret.code == 0 {
-            info!("投稿成功");
+            info!("APP接口投稿成功");
             Ok(ret)
         } else {
             Err(Kind::Custom(format!("{:?}", ret)))
@@ -320,7 +402,7 @@ impl BiliBili {
             .client
             .post("https://member.bilibili.com/x/vu/web/cover/up")
             .form(&json!({
-                "cover":  format!("data:image/jpeg;base64,{}", base64::encode(input)),
+                "cover": format!("data:image/jpeg;base64,{}", base64::Engine::encode(&base64::engine::general_purpose::STANDARD, input)),
                 "csrf": csrf["value"]
             }))
             .send()
@@ -341,6 +423,101 @@ impl BiliBili {
         } else {
             Err(Kind::Custom(format!("{res:?}")))
         }
+    }
+
+    /// 稿件管理
+    async fn archives(&self, status: &str, page_num: u32) -> Result<Value> {
+        let url_str = "https://member.bilibili.com/x/web/archives";
+        let params = [("status", status), ("pn", &page_num.to_string())];
+        let url = reqwest::Url::parse_with_params(url_str, &params).unwrap();
+
+        let cookie = self
+            .login_info
+            .cookie_info
+            .get("cookies")
+            .and_then(|c: &Value| c.as_array())
+            .ok_or("archives cookie error")?
+            .iter()
+            .filter_map(|c| match (c["name"].as_str(), c["value"].as_str()) {
+                (Some(name), Some(value)) => Some((name, value)),
+                _ => None,
+            })
+            .map(|c| format!("{}={}", c.0, c.1))
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        let jar = reqwest::cookie::Jar::default();
+        jar.add_cookie_str(&cookie, &url);
+
+        let res: ResponseData = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108")
+            .cookie_provider(std::sync::Arc::new(jar))
+            .timeout(Duration::new(60, 0))
+            .build()?
+            .get(url)
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        match res {
+            ResponseData {
+                code: _,
+                data: None,
+                ..
+            } => Err(Kind::Custom(format!("{:?}", res))),
+            ResponseData {
+                code: _,
+                data: Some(v),
+                ..
+            } => Ok(v),
+        }
+    }
+
+    /// 获取所有稿件原始数据
+    async fn all_archives_data(&self, status: &str) -> Result<Vec<Value>> {
+        let mut first_page = self.archives(status, 1).await?;
+
+        let (page_size, count) = {
+            let page = first_page["page"].take();
+            let page_size = page["ps"].as_u64().ok_or("all_studios ps error")?;
+            let count = page["count"].as_u64().ok_or("all_studios count error")?;
+            (page_size as u32, count as u32)
+        };
+
+        let pages = {
+            let mut pages = count / page_size;
+            if pages * page_size < count {
+                pages += 1;
+            }
+            pages
+        };
+
+        let mut all_pages = futures::future::try_join_all(
+            (2..=pages)
+                .map(|page_num| self.archives(status, page_num))
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+        all_pages.insert(0, first_page);
+
+        Ok(all_pages)
+    }
+
+    /// 获取所有稿件
+    pub async fn all_archives(&self, status: &str) -> Result<Vec<Archive>> {
+        let studios = self
+            .all_archives_data(status)
+            .await?
+            .iter_mut()
+            .map(|page| page["arc_audits"].take())
+            .filter_map(|audits| serde_json::from_value::<Vec<Value>>(audits).ok())
+            .flat_map(|archives| archives.into_iter())
+            .map(|mut arc| arc["Archive"].take())
+            .filter_map(|studio| serde_json::from_value::<_>(studio).ok())
+            .collect::<Vec<_>>();
+
+        Ok(studios)
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::cli::UploadLine;
+use crate::cli::{SubmitOption, UploadLine};
 use anyhow::{anyhow, Context, Result};
 use biliup::client::StatelessClient;
 use biliup::error::Kind;
@@ -23,6 +23,7 @@ use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::task::Poll;
 use std::time::Instant;
+use tracing::{info, warn};
 
 pub async fn login(user_cookie: PathBuf) -> Result<()> {
     let client = Credential::new();
@@ -47,7 +48,7 @@ pub async fn login(user_cookie: PathBuf) -> Result<()> {
     };
     let file = std::fs::File::create(user_cookie)?;
     serde_json::to_writer_pretty(&file, &info)?;
-    println!("登录成功，数据保存在{:?}", file);
+    info!("登录成功，数据保存在{:?}", file);
     Ok(())
 }
 
@@ -59,7 +60,7 @@ pub async fn renew(user_cookie: PathBuf) -> Result<()> {
     file.rewind()?;
     file.set_len(0)?;
     serde_json::to_writer_pretty(std::io::BufWriter::new(&file), &new_info)?;
-    println!("{new_info:?}");
+    info!("{new_info:?}");
     Ok(())
 }
 
@@ -69,6 +70,7 @@ pub async fn upload_by_command(
     video_path: Vec<PathBuf>,
     line: Option<UploadLine>,
     limit: usize,
+    submit: SubmitOption,
 ) -> Result<()> {
     let bili = login_by_cookies(user_cookie).await?;
     if studio.title.is_empty() {
@@ -80,7 +82,19 @@ pub async fn upload_by_command(
     }
     cover_up(&mut studio, &bili).await?;
     studio.videos = upload(&video_path, &bili, line, limit).await?;
-    bili.submit(&studio).await?;
+
+    // if studio.submit_by_app {
+    //     bili.submit_by_app(&studio).await?;
+    // }
+    // else {
+    //     bili.submit(&studio).await?;
+    // }
+    // 说不定会适配 web 呢...?
+    match submit {
+        SubmitOption::App => bili.submit_by_app(&studio).await?,
+        _ => bili.submit(&studio).await?,
+    };
+
     Ok(())
 }
 
@@ -94,7 +108,7 @@ pub async fn upload_by_config(config: PathBuf, user_cookie: PathBuf) -> Result<(
             paths.push(entry);
         }
         if paths.is_empty() {
-            println!("未搜索到匹配的视频文件：{filename_patterns}");
+            warn!("未搜索到匹配的视频文件：{filename_patterns}");
             continue;
         }
         cover_up(&mut studio, &bilibili).await?;
@@ -137,6 +151,32 @@ pub async fn show(user_cookie: PathBuf, vid: Vid) -> Result<()> {
     Ok(())
 }
 
+pub async fn list(
+    user_cookie: PathBuf,
+    is_pubing: bool,
+    pubed: bool,
+    not_pubed: bool,
+) -> Result<()> {
+    let status = match (is_pubing, pubed, not_pubed) {
+        (true, false, false) => "is_pubing",
+        (false, true, false) => "pubed",
+        (false, false, true) => "not_pubed",
+        (false, false, false) => "is_pubing,pubed,not_pubed",
+        _ => {
+            tracing::warn!("选项互斥，默认列出所有状态的稿件");
+            "is_pubing,pubed,not_pubed"
+        }
+    };
+
+    let bilibili = login_by_cookies(user_cookie).await?;
+    bilibili
+        .all_archives(status)
+        .await?
+        .iter()
+        .for_each(|arc| println!("{}", arc.to_string_pretty()));
+    Ok(())
+}
+
 async fn login_by_cookies(user_cookie: PathBuf) -> Result<BiliBili> {
     let result = credential::login_by_cookies(&user_cookie).await;
     Ok(if let Err(Kind::IO(_)) = result {
@@ -144,7 +184,7 @@ async fn login_by_cookies(user_cookie: PathBuf) -> Result<BiliBili> {
             .with_context(|| String::from("open cookies file: ") + &user_cookie.to_string_lossy())?
     } else {
         let bili = result?;
-        println!(
+        info!(
             "user: {}",
             bili.my_info().await?["data"]["name"]
                 .as_str()
@@ -162,7 +202,7 @@ pub async fn cover_up(studio: &mut Studio, bili: &BiliBili) -> Result<()> {
                     .with_context(|| format!("cover: {}", studio.cover))?,
             )
             .await?;
-        println!("{url}");
+        info!("{url}");
         studio.cover = url;
     }
     Ok(())
@@ -174,23 +214,27 @@ pub async fn upload(
     line: Option<UploadLine>,
     limit: usize,
 ) -> Result<Vec<Video>> {
-    println!("number of concurrent futures: {limit}");
+    info!("number of concurrent futures: {limit}");
     let mut videos = Vec::new();
     let client = StatelessClient::default();
     let line = match line {
-        Some(UploadLine::Kodo) => line::kodo(),
         Some(UploadLine::Bda2) => line::bda2(),
         Some(UploadLine::Ws) => line::ws(),
         Some(UploadLine::Qn) => line::qn(),
         Some(UploadLine::QnHK) => line::qnhk(),
-        Some(UploadLine::Cos) => line::cos(),
-        Some(UploadLine::CosInternal) => line::cos_internal(),
+        // Some(UploadLine::Kodo) => line::kodo(),
+        // Some(UploadLine::Cos) => line::cos(),
+        // Some(UploadLine::CosInternal) => line::cos_internal(),
         Some(UploadLine::Bldsa) => line::bldsa(),
+        Some(UploadLine::Tx) => line::tx(),
+        Some(UploadLine::Txa) => line::txa(),
+        Some(UploadLine::Bda) => line::bda(),
+        Some(UploadLine::Alia) => line::alia(),
         None => Probe::probe(&client.client).await.unwrap_or_default(),
     };
     // let line = line::kodo();
     for video_path in video_path {
-        println!("{line:?}");
+        info!("{line:?}");
         let video_file = VideoFile::new(video_path)
             .with_context(|| format!("file {}", video_path.to_string_lossy()))?;
         let total_size = video_file.total_size;
@@ -217,7 +261,7 @@ pub async fn upload(
             .await?;
         pb.finish_and_clear();
         let t = instant.elapsed().as_millis();
-        println!(
+        info!(
             "Upload completed: {file_name} => cost {:.2}s, {:.2} MB/s.",
             t as f64 / 1000.,
             total_size as f64 / 1000. / t as f64
@@ -245,7 +289,22 @@ pub async fn login_by_sms(credential: Credential) -> Result<LoginInfo> {
     let phone: u64 = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入手机号")
         .interact_text()?;
-    let res = credential.send_sms(phone, country_code).await?;
+    let res = credential
+        .send_sms_handle_recaptcha(phone, country_code, |url| async move {
+            println!("{url}");
+            println!("请复制此链接至浏览器打开并启动开发者工具，完成滑动验证后查看网络请求");
+
+            let challenge: String = Input::with_theme(&ColorfulTheme::default())
+                .with_prompt("请输入get.php响应中的challenge值")
+                .interact_text()?;
+
+            let valiate: String = Input::with_theme(&ColorfulTheme::default())
+                .with_prompt("请输入ajax.php响应中的validate值")
+                .interact_text()?;
+
+            Ok((challenge, valiate))
+        })
+        .await?;
     let input: u32 = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("请输入验证码")
         .interact_text()?;

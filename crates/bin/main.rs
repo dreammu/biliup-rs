@@ -1,13 +1,15 @@
 mod cli;
 mod downloader;
+#[cfg(feature = "server")]
 mod server;
 mod uploader;
 
 use anyhow::Result;
+use time::macros::format_description;
 
 use crate::cli::{Cli, Commands};
 use crate::downloader::{download, generate_json};
-use crate::uploader::{append, login, renew, show, upload_by_command, upload_by_config};
+use crate::uploader::{append, list, login, renew, show, upload_by_command, upload_by_config};
 
 use clap::Parser;
 
@@ -27,9 +29,17 @@ async fn main() -> Result<()> {
     // tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
     let cli = Cli::parse();
 
+    unsafe {
+        time::util::local_offset::set_soundness(time::util::local_offset::Soundness::Unsound);
+    }
+
+    let timer = tracing_subscriber::fmt::time::LocalTime::new(format_description!(
+        "[year]-[month]-[day] [hour]:[minute]:[second]"
+    ));
+
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(&cli.rust_log))
-        .with(tracing_subscriber::fmt::layer())
+        .with(tracing_subscriber::fmt::layer().with_timer(timer))
         .init();
 
     match cli.command {
@@ -43,7 +53,8 @@ async fn main() -> Result<()> {
             line,
             limit,
             studio,
-        } => upload_by_command(studio, cli.user_cookie, video_path, line, limit).await?,
+            submit,
+        } => upload_by_command(studio, cli.user_cookie, video_path, line, limit, submit).await?,
         Commands::Upload {
             video_path: _,
             config: Some(config),
@@ -64,7 +75,13 @@ async fn main() -> Result<()> {
             split_size,
             split_time,
         } => download(&url, output, split_size, split_time).await?,
+        #[cfg(feature = "server")]
         Commands::Server { bind, port } => server::run((&bind, port)).await?,
+        Commands::List {
+            is_pubing,
+            pubed,
+            not_pubed,
+        } => list(cli.user_cookie, is_pubing, pubed, not_pubed).await?,
     };
     Ok(())
 }

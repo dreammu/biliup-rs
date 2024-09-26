@@ -1,4 +1,5 @@
 use crate::retry;
+use rand::Rng;
 use reqwest::header::HeaderMap;
 use reqwest::{header, Response};
 use reqwest_cookie_store::CookieStoreMutex;
@@ -16,8 +17,7 @@ pub struct StatelessClient {
 }
 
 impl StatelessClient {
-    pub fn new(mut headers: HeaderMap) -> Self {
-        headers.insert("Connection", header::HeaderValue::from_static("keep-alive"));
+    pub fn new(headers: HeaderMap) -> Self {
         let client = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:60.1) Gecko/20100101 Firefox/60.1")
             .default_headers(headers)
@@ -61,12 +61,12 @@ impl StatelessClient {
 pub struct StatefulClient {
     pub client: reqwest::Client,
     pub cookie_store: Arc<CookieStoreMutex>,
+    pub buvid: String,
 }
 
 impl StatefulClient {
-    pub fn new(mut headers: HeaderMap) -> Self {
-        headers.insert("Connection", header::HeaderValue::from_static("keep-alive"));
-        let cookie_store = cookie_store::CookieStore::default();
+    pub fn new(headers: HeaderMap) -> Self {
+        let cookie_store = reqwest_cookie_store::CookieStore::default();
         let cookie_store = CookieStoreMutex::new(cookie_store);
         let cookie_store = Arc::new(cookie_store);
         StatefulClient {
@@ -81,6 +81,7 @@ impl StatefulClient {
                 .build()
                 .unwrap(),
             cookie_store,
+            buvid: generate_buvid(),
         }
     }
 }
@@ -89,4 +90,24 @@ impl Default for StatelessClient {
     fn default() -> Self {
         Self::new(header::HeaderMap::new())
     }
+}
+
+// ref: https://github.com/SocialSisterYi/bilibili-API-collect
+fn generate_buvid() -> String {
+    let mut rng = rand::thread_rng();
+
+    let dummy_md5 = (0..32).map(|_| rng.gen_range(0..0xf)).collect::<Vec<u8>>();
+    let prefix = [2, 12, 22].map(|i| dummy_md5[i]);
+
+    let hash_string = [prefix.as_slice(), dummy_md5.as_slice()]
+        .map(|array| {
+            array
+                .iter()
+                .map(|n| format!("{n:X}"))
+                .collect::<Vec<_>>()
+                .join("")
+        })
+        .join("");
+
+    format!("Y{hash_string}")
 }

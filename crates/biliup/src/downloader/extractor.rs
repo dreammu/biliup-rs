@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use reqwest::header::{HeaderValue, ACCEPT_ENCODING};
 use std::any::Any;
 use std::fmt::{Display, Formatter};
+use tracing::info;
 
 use crate::client::StatelessClient;
 
@@ -45,34 +46,36 @@ impl Display for Site {
     }
 }
 
-enum Extension {
+pub enum Extension {
     Flv,
     Ts,
 }
+
+pub type CallbackFn = Box<dyn Fn(&str) + Send>;
 
 impl Site {
     pub async fn download(
         &mut self,
         fmt_file_name: &str,
         segment: Segmentable,
-        hook: Option<Box<dyn Fn(&str) + Send>>,
+        hook: Option<CallbackFn>,
     ) -> downloader::error::Result<()> {
         let fmt_file_name = fmt_file_name.replace("{title}", &self.title);
         self.client
             .headers
             .append(ACCEPT_ENCODING, HeaderValue::from_static("gzip, deflate"));
-        println!("{}", self);
+        info!("{}", self);
         match self.extension {
             Extension::Flv => {
-                let mut file: LifecycleFile = LifecycleFile::new(&fmt_file_name, "flv", hook);
+                let file = LifecycleFile::new(&fmt_file_name, "flv", hook);
                 let response = self.client.retryable(&self.direct_url).await?;
                 let mut connection = Connection::new(response);
                 connection.read_frame(9).await?;
                 httpflv::parse_flv(connection, file, segment).await?
             }
             Extension::Ts => {
-                let mut file: LifecycleFile = LifecycleFile::new(&fmt_file_name, "ts", hook);
-                hls::download(&self.direct_url, &self.client, &file.fmt_file_name, segment).await?
+                let file = LifecycleFile::new(&fmt_file_name, "ts", hook);
+                hls::download(&self.direct_url, &self.client, file, segment).await?
             }
         }
         Ok(())
